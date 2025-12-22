@@ -1326,6 +1326,155 @@ class TestContinuationLines:
             temp_path.unlink()
 
 
+class TestCommentIndentation:
+    """Test comment line indentation."""
+
+    def test_comment_indentation_hierarchical(self):
+        """Test that comments are indented with hierarchical style."""
+        config = LinterConfig.espidf_preset()
+        linter = KconfigLinter(config)
+
+        input_lines = [
+            'menu "Test"\n',
+            "# Comment inside menu\n",
+            "config TEST\n",
+            '    bool "Test"\n',
+            "endmenu\n",
+            "# Comment outside menu\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(input_lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted, _ = linter.format_file(temp_path)
+
+            # Find comment lines
+            inside_comment = [line for line in formatted if "Comment inside" in line][0]
+            outside_comment = [line for line in formatted if "Comment outside" in line][
+                0
+            ]
+
+            # Inside comment should be indented
+            assert inside_comment.startswith("    #"), (
+                f"Comment inside menu should be indented: {repr(inside_comment)}"
+            )
+
+            # Outside comment should not be indented
+            assert outside_comment.startswith("#") and not outside_comment.startswith(
+                " "
+            ), f"Comment outside menu should not be indented: {repr(outside_comment)}"
+        finally:
+            temp_path.unlink()
+
+    def test_comment_no_indent_without_hierarchical(self):
+        """Test that comments are not indented without hierarchical style."""
+        config = LinterConfig.zephyr_preset()  # No hierarchical by default
+        linter = KconfigLinter(config)
+
+        input_lines = [
+            'menu "Test"\n',
+            "# Comment inside menu\n",
+            "config TEST\n",
+            '\tbool "Test"\n',
+            "endmenu\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(input_lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted, _ = linter.format_file(temp_path)
+
+            # Find comment line
+            comment = [line for line in formatted if "Comment inside" in line][0]
+
+            # Comment should not be indented (Zephyr style, no hierarchy, not in config block)
+            assert comment.startswith("#") and not comment.startswith(" "), (
+                f"Comment should not be indented in Zephyr style: {repr(comment)}"
+            )
+        finally:
+            temp_path.unlink()
+
+    def test_comment_in_config_block(self):
+        """Test that comments inside config blocks are always indented."""
+        config = LinterConfig.zephyr_preset()  # No hierarchical by default
+        linter = KconfigLinter(config)
+
+        input_lines = [
+            "config TEST\n",
+            '\tbool "Test"\n',
+            "# Comment inside config block\n",
+            "\tdefault y\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(input_lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted, _ = linter.format_file(temp_path)
+
+            # Find comment line
+            comment = [line for line in formatted if "Comment inside" in line][0]
+
+            # Comment should be indented like options (with tab in Zephyr style)
+            assert comment.startswith("\t#"), (
+                f"Comment in config block should be indented: {repr(comment)}"
+            )
+        finally:
+            temp_path.unlink()
+
+    def test_nested_comment_indentation(self):
+        """Test comment indentation in nested structures."""
+        config = LinterConfig.espidf_preset()
+        linter = KconfigLinter(config)
+
+        input_lines = [
+            'menu "Level 1"\n',
+            "# Comment level 1\n",
+            'menu "Level 2"\n',
+            "# Comment level 2\n",
+            "config TEST\n",
+            '    bool "Test"\n',
+            "endmenu\n",
+            "endmenu\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(input_lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted, _ = linter.format_file(temp_path)
+
+            # Find comment lines
+            level1_comment = [line for line in formatted if "level 1" in line][0]
+            level2_comment = [line for line in formatted if "level 2" in line][0]
+
+            # Level 1 should have 4 spaces
+            assert level1_comment.startswith("    #"), (
+                f"Level 1 comment should have 4 spaces: {repr(level1_comment)}"
+            )
+
+            # Level 2 should have 8 spaces
+            assert level2_comment.startswith("        #"), (
+                f"Level 2 comment should have 8 spaces: {repr(level2_comment)}"
+            )
+        finally:
+            temp_path.unlink()
+
+
 class TestCLI:
     """Test command-line interface."""
 

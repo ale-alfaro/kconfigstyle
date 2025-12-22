@@ -108,6 +108,7 @@ class KconfigLinter:
         """Format Kconfig lines according to configuration."""
         formatted = []
         in_help = False
+        in_config_block = False  # Track if we're inside a config/menuconfig block
         indent_level = 0
         prev_was_empty = False
         help_lines = []  # Collect help text lines for reflow
@@ -159,6 +160,20 @@ class KconfigLinter:
                     help_lines = []
                 in_help = False
 
+            # Check if we're entering or leaving a config block
+            if line_type in ["config", "menuconfig"]:
+                in_config_block = True
+            elif line_type in [
+                "menu",
+                "endmenu",
+                "choice",
+                "endchoice",
+                "if",
+                "endif",
+                "source",
+            ]:
+                in_config_block = False
+
             # Update indent level (for end markers, do it before formatting)
             if line_type in ["endmenu", "endif", "endchoice"] and indent_level > 0:
                 indent_level -= 1
@@ -174,7 +189,7 @@ class KconfigLinter:
             else:
                 # Format the line normally
                 formatted_line = self._format_line(
-                    stripped, line_type, indent_level, in_help
+                    stripped, line_type, indent_level, in_help, in_config_block
                 )
 
                 # Check if this line should be wrapped with continuations
@@ -256,7 +271,12 @@ class KconfigLinter:
         return result
 
     def _format_line(
-        self, stripped: str, line_type: str, indent_level: int, in_help: bool
+        self,
+        stripped: str,
+        line_type: str,
+        indent_level: int,
+        in_help: bool,
+        in_config_block: bool = False,
     ) -> str:
         """Format a single line with proper indentation.
 
@@ -287,6 +307,26 @@ class KconfigLinter:
         ]:
             # Top-level declarations
             if self.config.indent_sub_items and indent_level > 0:
+                if self.config.use_spaces:
+                    indent = " " * (indent_level * self.config.primary_indent_spaces)
+                else:
+                    indent = "\t" * indent_level
+            else:
+                indent = ""
+        elif line_type == "comment_line":
+            # Comment lines should match the indentation level of their context
+            # If inside a config block, indent like options
+            if in_config_block:
+                # Inside a config/menuconfig, indent like options
+                base_level = 1
+                if self.config.indent_sub_items:
+                    base_level += indent_level
+                if self.config.use_spaces:
+                    indent = " " * (base_level * self.config.primary_indent_spaces)
+                else:
+                    indent = "\t" * base_level
+            elif self.config.indent_sub_items and indent_level > 0:
+                # Outside config blocks but inside menu/if, use hierarchical indent
                 if self.config.use_spaces:
                     indent = " " * (indent_level * self.config.primary_indent_spaces)
                 else:
