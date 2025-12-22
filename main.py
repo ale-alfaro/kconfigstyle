@@ -198,13 +198,21 @@ class KconfigLinter:
                 "source",
             ]:
                 in_config_block = False
-            
+
             # Unindented lines that aren't recognized keywords also end config blocks
             # But comments don't end config blocks (they can appear anywhere)
             if (
                 in_config_block
                 and not line_no_newline.startswith((" ", "\t"))
-                and line_type not in ["config", "menuconfig", "option", "help", "help_text", "comment_line"]
+                and line_type
+                not in [
+                    "config",
+                    "menuconfig",
+                    "option",
+                    "help",
+                    "help_text",
+                    "comment_line",
+                ]
             ):
                 in_config_block = False
 

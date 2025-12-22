@@ -1741,7 +1741,7 @@ class TestHelpBlockTermination:
             "\t  This is help text.\n",
             "\n",
             "module = TEST\n",
-            "source \"Kconfig.test\"\n",
+            'source "Kconfig.test"\n',
         ]
 
         with tempfile.NamedTemporaryFile(
@@ -1805,7 +1805,7 @@ class TestHelpBlockTermination:
             "\n",
             "module = MEMFAULT\n",
             "module-str = Memfault\n",
-            "source \"test.Kconfig\"\n",
+            'source "test.Kconfig"\n',
         ]
 
         with tempfile.NamedTemporaryFile(
