@@ -1,0 +1,38 @@
+menu "Network Configuration"
+    config NETWORKING_ENABLED
+        bool "Enable networking"
+        default y
+        help
+            Enable network stack support for the application.
+            This provides TCP/IP connectivity.
+
+    config NET_IPV4_SUPPORT
+        bool "IPv4 support"
+        depends on NETWORKING_ENABLED
+        default y
+        help
+            Enable IPv4 protocol support.
+
+    config NET_IPV6_SUPPORT
+        bool "IPv6 support"
+        depends on NETWORKING_ENABLED
+        default n
+        help
+            Enable IPv6 protocol support.
+endmenu
+
+menu "Advanced Options"
+    config ADV_FEATURE_ENABLED
+        bool "Enable advanced features"
+        default n
+        help
+            Enable advanced feature set.
+
+    config ADV_TIMEOUT
+        int "Timeout value"
+        depends on ADV_FEATURE_ENABLED
+        range 0 1000
+        default 100
+        help
+            Configure the timeout value in milliseconds.
+endmenu

@@ -1,0 +1,38 @@
+# Zephyr-style Kconfig example
+
+config NETWORKING
+	bool "Enable networking"
+	help
+	  Enable network stack support for the application.
+	  This provides TCP/IP connectivity.
+
+config NET_IPV4
+	bool "IPv4 support"
+	depends on NETWORKING
+	help
+	  Enable IPv4 protocol support.
+
+config NET_IPV6
+	bool "IPv6 support"
+	depends on NETWORKING
+	help
+	  Enable IPv6 protocol support.
+
+if ADVANCED_FEATURES
+
+config FEATURE_X
+	bool "Feature X"
+	help
+	  Enable advanced feature X.
+
+endif
+
+menu "Advanced Options"
+
+config ADVANCED_OPTION_1
+	int "Advanced option 1"
+	default 42
+	help
+	  Configure advanced option 1.
+
+endmenu

@@ -1,0 +1,30 @@
+[project]
+name = "kconfstyle"
+version = "0.1.0"
+description = "Simple formatter for Kconfig files"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+kconfstyle = "main:main"
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.10",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report html"
+
+[tool.coverage.run]
+branch = true
+omit = [
+    "tests/*",
+]
+patch = ["subprocess"]

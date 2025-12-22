@@ -1,0 +1,12 @@
+#Bad comment formatting
+config BadLowercase
+  bool "This uses spaces not tabs"
+  help
+   Help text with wrong indentation
+
+config ANOTHER_CONFIG
+	bool "This is fine"
+	help
+	  But there are trailing spaces above and this line is way too long to fit within the 100 character limit for Zephyr style
+config MISSING_SPACING
+	bool "No empty line before this"
