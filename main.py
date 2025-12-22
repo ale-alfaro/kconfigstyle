@@ -121,11 +121,14 @@ class KconfigLinter:
 
             # Skip if empty
             if not line.strip():
-                # If we're in help and collecting lines for reflow, add empty line as paragraph break
-                if in_help and self.config.reflow_help_text:
-                    help_lines.append("")
-                    prev_was_empty = True
-                    continue
+                # Empty line terminates help block
+                if in_help:
+                    if self.config.reflow_help_text and help_lines:
+                        formatted.extend(
+                            self._reflow_help_text(help_lines, indent_level)
+                        )
+                        help_lines = []
+                    in_help = False
 
                 # Consolidate empty lines if configured
                 if self.config.consolidate_empty_lines:
@@ -139,28 +142,50 @@ class KconfigLinter:
 
             prev_was_empty = False
             stripped = line_no_newline.lstrip()
-            line_type = self._get_line_type(line_no_newline)
 
-            # Check if this line ends the help section (do this BEFORE formatting)
-            if in_help and line_type in [
-                "config",
-                "menuconfig",
-                "choice",
-                "endchoice",
-                "menu",
-                "endmenu",
-                "if",
-                "endif",
-                "source",
-                "comment",
-            ]:
-                # Flush collected help text with reflow
-                if self.config.reflow_help_text and help_lines:
-                    formatted.extend(self._reflow_help_text(help_lines, indent_level))
-                    help_lines = []
-                in_help = False
+            # Get line type, but if we're in help, treat everything as help text
+            # unless it's a clear top-level keyword that couldn't be help content
+            if in_help:
+                # Check if this looks like it could only be a top-level keyword
+                # (not indented, matches keyword pattern)
+                if not line_no_newline.startswith((" ", "\t")):
+                    # Top-level line - check if it's a keyword that ends help
+                    line_type = self._get_line_type(line_no_newline)
+                    if line_type in [
+                        "config",
+                        "menuconfig",
+                        "choice",
+                        "endchoice",
+                        "menu",
+                        "endmenu",
+                        "if",
+                        "endif",
+                        "source",
+                        "rsource",
+                        "comment",
+                    ]:
+                        # This ends the help block
+                        if self.config.reflow_help_text and help_lines:
+                            formatted.extend(
+                                self._reflow_help_text(help_lines, indent_level)
+                            )
+                            help_lines = []
+                        in_help = False
+                    else:
+                        # Top-level but not a keyword - treat as help text
+                        line_type = "help_text"
+                else:
+                    # Indented line in help - definitely help text
+                    line_type = "help_text"
+            else:
+                # Not in help block - determine line type normally
+                line_type = self._get_line_type(line_no_newline)
 
-            # Check if we're entering or leaving a config block
+            # Update indent level (for end markers, do it before formatting)
+            if line_type in ["endmenu", "endif", "endchoice"] and indent_level > 0:
+                indent_level -= 1
+
+            # Check if we're entering or leaving a config block (BEFORE formatting)
             if line_type in ["config", "menuconfig"]:
                 in_config_block = True
             elif line_type in [
@@ -173,17 +198,18 @@ class KconfigLinter:
                 "source",
             ]:
                 in_config_block = False
-
-            # Update indent level (for end markers, do it before formatting)
-            if line_type in ["endmenu", "endif", "endchoice"] and indent_level > 0:
-                indent_level -= 1
+            
+            # Unindented lines that aren't recognized keywords also end config blocks
+            # But comments don't end config blocks (they can appear anywhere)
+            if (
+                in_config_block
+                and not line_no_newline.startswith((" ", "\t"))
+                and line_type not in ["config", "menuconfig", "option", "help", "help_text", "comment_line"]
+            ):
+                in_config_block = False
 
             # If we're in help and reflow is enabled, collect the text
-            if (
-                in_help
-                and self.config.reflow_help_text
-                and not stripped.startswith("help")
-            ):
+            if in_help and self.config.reflow_help_text and line_type == "help_text":
                 help_lines.append(stripped)
                 # Don't format yet, we'll reflow later
             else:
@@ -215,7 +241,6 @@ class KconfigLinter:
             # Update indent level for next iteration (for start markers)
             if line_type in ["menu", "if", "choice"]:
                 indent_level += 1
-
         # Flush any remaining help text
         if self.config.reflow_help_text and help_lines:
             formatted.extend(self._reflow_help_text(help_lines, indent_level))
@@ -284,7 +309,7 @@ class KconfigLinter:
         lines if it's too long and supports continuation.
         """
         # Determine indentation
-        if in_help and not stripped.startswith("help"):
+        if line_type == "help_text" or (in_help and not stripped.startswith("help")):
             # Help text indentation
             if self.config.use_spaces:
                 base_indent = self.config.primary_indent_spaces
@@ -342,8 +367,17 @@ class KconfigLinter:
                     indent = "\t" * indent_level
             else:
                 indent = ""
-        elif line_type in ["option", "help", "other"] and not in_help:
+        elif line_type in ["option", "help"] and not in_help:
             # Options indented one level
+            base_level = 1
+            if self.config.indent_sub_items:
+                base_level += indent_level
+            if self.config.use_spaces:
+                indent = " " * (base_level * self.config.primary_indent_spaces)
+            else:
+                indent = "\t" * base_level
+        elif line_type == "other" and not in_help and in_config_block:
+            # "Other" lines inside config blocks get indented
             base_level = 1
             if self.config.indent_sub_items:
                 base_level += indent_level
@@ -626,9 +660,9 @@ class KconfigLinter:
 
         if stripped.startswith("#"):
             return "comment_line"
-        elif stripped.startswith("config "):
+        elif stripped.startswith("config"):
             return "config"
-        elif stripped.startswith("menuconfig "):
+        elif stripped.startswith("menuconfig"):
             return "menuconfig"
         elif stripped.startswith("menu "):
             return "menu"
@@ -642,7 +676,7 @@ class KconfigLinter:
             return "if"
         elif stripped.startswith("endif"):
             return "endif"
-        elif stripped.startswith("source "):
+        elif stripped.startswith("source ") or stripped.startswith("rsource "):
             return "source"
         elif stripped.startswith("comment "):
             return "comment"

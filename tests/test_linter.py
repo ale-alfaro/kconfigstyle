@@ -1723,3 +1723,103 @@ class TestCLI:
                         assert len(line) <= 60, f"Line too long: {line}"
         finally:
             temp_path.unlink()
+
+
+class TestHelpBlockTermination:
+    """Test help block termination and keyword detection."""
+
+    def test_blank_line_terminates_help(self):
+        """Test that blank lines terminate help blocks."""
+        config = LinterConfig.zephyr_preset()
+        config.reflow_help_text = True
+        linter = KconfigLinter(config)
+
+        lines = [
+            "config TEST\n",
+            '\tbool "Test option"\n',
+            "\thelp\n",
+            "\t  This is help text.\n",
+            "\n",
+            "module = TEST\n",
+            "source \"Kconfig.test\"\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted_lines, _ = linter.format_file(temp_path)
+            formatted = "".join(formatted_lines)
+
+            # After the blank line, module and source should be at top level (not indented)
+            assert "\nmodule = TEST\n" in formatted
+            assert '\nsource "Kconfig.test"\n' in formatted
+        finally:
+            temp_path.unlink()
+
+    def test_config_keyword_in_help_text(self):
+        """Test that 'config' in help text is not treated as a keyword."""
+        config = LinterConfig.zephyr_preset()
+        config.reflow_help_text = True
+        linter = KconfigLinter(config)
+
+        lines = [
+            "config MEMFAULT_TEST\n",
+            '\tbool "Test option"\n',
+            "\thelp\n",
+            "\t  This option provides a\n",
+            "\t  config header.\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted_lines, _ = linter.format_file(temp_path)
+            formatted = "".join(formatted_lines)
+
+            # "config header." should be reflowed as part of help text, not treated as keyword
+            assert "config header" in formatted
+            # Should be a single reflowed paragraph
+            assert formatted.count("\t  ") == 1  # Only one help text line
+        finally:
+            temp_path.unlink()
+
+    def test_module_keyword_in_help_text(self):
+        """Test that 'module' assignments in help text are treated as help content."""
+        config = LinterConfig.zephyr_preset()
+        config.reflow_help_text = False
+        linter = KconfigLinter(config)
+
+        lines = [
+            "config TEST\n",
+            '\tbool "Test"\n',
+            "\thelp\n",
+            "\t  Help text.\n",
+            "\n",
+            "module = MEMFAULT\n",
+            "module-str = Memfault\n",
+            "source \"test.Kconfig\"\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted_lines, _ = linter.format_file(temp_path)
+            formatted = "".join(formatted_lines)
+
+            # After blank line terminates help, unindented module lines should be top-level
+            assert "\nmodule = MEMFAULT\n" in formatted
+            assert "\nmodule-str = Memfault\n" in formatted
+        finally:
+            temp_path.unlink()
