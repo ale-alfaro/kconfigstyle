@@ -9,6 +9,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+try:
+    from importlib.metadata import version
+
+    __version__ = version("kconfstyle")
+except Exception:
+    __version__ = "unknown"
+
 
 @dataclass
 class LinterConfig:
@@ -859,6 +866,11 @@ Examples:
 
     parser.add_argument(
         "files", nargs="+", type=Path, help="Kconfig files to lint/format"
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument(
         "--preset",

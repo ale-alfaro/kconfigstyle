@@ -13,7 +13,7 @@ Repository = "https://github.com/noahp/kconfstyle"
 Issues = "https://github.com/noahp/kconfstyle/issues"
 
 [project.scripts]
-kconfstyle = "main:main"
+kconfstyle = "kconfstyle:main"
 
 [tool.uv]
 package = true

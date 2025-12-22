@@ -5,10 +5,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Add parent directory to path to import main module
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from main import KconfigLinter, LinterConfig
+from kconfstyle import KconfigLinter, LinterConfig
 
 
 class TestZephyrStyle:
@@ -842,7 +839,7 @@ class TestEdgeCases:
 
     def test_lint_issue_string_representation(self):
         """Test LintIssue string formatting."""
-        from main import LintIssue
+        from kconfstyle import LintIssue
 
         issue_with_col = LintIssue(10, 5, "error", "Test message")
         assert str(issue_with_col) == "Line 10:5: [error] Test message"
@@ -1488,7 +1485,7 @@ class TestCLI:
 
         try:
             result = subprocess.run(
-                [sys.executable, "main.py", str(temp_path)],
+                [sys.executable, "-m", "kconfstyle", str(temp_path)],
                 cwd=Path(__file__).parent.parent,
                 capture_output=True,
                 text=True,
@@ -1508,7 +1505,7 @@ class TestCLI:
 
         try:
             result = subprocess.run(
-                [sys.executable, "main.py", str(temp_path)],
+                [sys.executable, "-m", "kconfstyle", str(temp_path)],
                 cwd=Path(__file__).parent.parent,
                 capture_output=True,
                 text=True,
@@ -1521,7 +1518,7 @@ class TestCLI:
     def test_cli_file_not_found(self):
         """Test CLI with non-existent file."""
         result = subprocess.run(
-            [sys.executable, "main.py", "/nonexistent/file.Kconfig"],
+            [sys.executable, "-m", "kconfstyle", "/nonexistent/file.Kconfig"],
             cwd=Path(__file__).parent.parent,
             capture_output=True,
             text=True,
@@ -1538,7 +1535,7 @@ class TestCLI:
 
         try:
             result = subprocess.run(
-                [sys.executable, "main.py", "--write", str(temp_path)],
+                [sys.executable, "-m", "kconfstyle", "--write", str(temp_path)],
                 cwd=Path(__file__).parent.parent,
                 capture_output=True,
                 text=True,
@@ -1564,7 +1561,14 @@ class TestCLI:
 
         try:
             result = subprocess.run(
-                [sys.executable, "main.py", "--preset", "espidf", str(temp_path)],
+                [
+                    sys.executable,
+                    "-m",
+                    "kconfstyle",
+                    "--preset",
+                    "espidf",
+                    str(temp_path),
+                ],
                 cwd=Path(__file__).parent.parent,
                 capture_output=True,
                 text=True,
@@ -1586,7 +1590,8 @@ class TestCLI:
             result = subprocess.run(
                 [
                     sys.executable,
-                    "main.py",
+                    "-m",
+                    "kconfstyle",
                     "--max-line-length",
                     "50",
                     str(temp_path),
@@ -1610,7 +1615,7 @@ class TestCLI:
 
         try:
             result = subprocess.run(
-                [sys.executable, "main.py", "--verbose", str(temp_path)],
+                [sys.executable, "-m", "kconfstyle", "--verbose", str(temp_path)],
                 cwd=Path(__file__).parent.parent,
                 capture_output=True,
                 text=True,
@@ -1635,7 +1640,7 @@ class TestCLI:
 
         try:
             result = subprocess.run(
-                [sys.executable, "main.py", str(temp_path1), str(temp_path2)],
+                [sys.executable, "-m", "kconfstyle", str(temp_path1), str(temp_path2)],
                 cwd=Path(__file__).parent.parent,
                 capture_output=True,
                 text=True,
@@ -1657,7 +1662,8 @@ class TestCLI:
             result = subprocess.run(
                 [
                     sys.executable,
-                    "main.py",
+                    "-m",
+                    "kconfstyle",
                     "--use-spaces",
                     "--primary-indent",
                     "2",
@@ -1699,7 +1705,8 @@ class TestCLI:
             result = subprocess.run(
                 [
                     sys.executable,
-                    "main.py",
+                    "-m",
+                    "kconfstyle",
                     "--reflow-help",
                     "--max-line-length",
                     "60",
