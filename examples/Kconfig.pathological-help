@@ -5,3 +5,33 @@ config NETWORKING
 	  This provides TCP/IP connectivity.
 
 	  config use this config!
+
+choice SOME_CHOICE
+	prompt "Select a choice"
+	default SOME_CHOICE_OPTION_A if YOLO
+	default SOME_CHOICE_OPTION_B
+	help
+	  Select your choice!
+
+config SOME_CHOICE_OPTION_A
+	bool "Option A"
+	help
+	  This is option A for the choice.
+config SOME_CHOICE_OPTION_B
+	bool "Option B"
+	help
+	  This is option B for the choice.
+endchoice
+
+if YOLO
+
+	config YOLO_FEATURE
+		bool "Enable YOLO feature"
+		help
+		  When enabled, __has_include is used to conditionally include the three Memfault
+		  configuration files to a port if they exist instead of failing to compile if
+		  they do not:
+		  memfault_platform_config.h
+		  memfault_metrics_heartbeat_config.def
+		  memfault_trace_reason_user_config.def
+endif  # YOLO

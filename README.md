@@ -34,6 +34,47 @@ pip install kconfigstyle
 kconfigstyle [options] <kconfig_files>
 ```
 
+## Command Line Options
+
+See `kconfigstyle --help` for a full list of options. Some notable options
+include:
+
+- `--preset {zephyr,espidf}`
+  Use a style preset (individual options override preset values)
+
+- `--write, -w`
+  Write formatted output back to files (format mode)
+
+- `--use-spaces`
+  Use spaces instead of tabs for indentation
+
+- `--primary-indent PRIMARY_INDENT`
+  Number of spaces for primary indentation (default: 4)
+
+- `--help-indent HELP_INDENT`
+  Number of extra spaces for help text indentation (default: 2)
+
+- `--max-line-length MAX_LINE_LENGTH`
+  Maximum line length (default: 100 for Zephyr, 120 for ESP-IDF)
+
+- `--max-option-length MAX_OPTION_LENGTH`
+  Maximum config option name length (default: 50)
+
+- `--uppercase-configs`
+  Require config names to be uppercase
+
+- `--min-prefix-length MIN_PREFIX_LENGTH`
+  Minimum prefix length for config names (default: 3 for ESP-IDF)
+
+- `--indent-sub-items`
+  Use hierarchical indentation for sub-items (ESP-IDF style)
+
+- `--consolidate-empty-lines`
+  Consolidate multiple consecutive empty lines into one
+
+- `--reflow-help`
+  Reflow help text to fit within max line length
+
 ## License
 
 See LICENSE file for details.
