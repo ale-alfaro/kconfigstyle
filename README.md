@@ -8,16 +8,38 @@
 A simple linter for Kconfig files, with support for Zephyr and ESP-IDF coding
 styles.
 
-See here for refences on Zephyr and ESP-IDF Kconfig styles:
+The "Kconfig language" is defined here:
 
-- https://docs.zephyrproject.org/latest/contribute/style/kconfig.html
-- https://docs.espressif.com/projects/esp-idf-kconfig/en/latest/kconfcheck/index.html#kconfig-format-rules
+- https://docs.kernel.org/kbuild/kconfig-language.html
 
-Espressif provides a tool called
+There's several extensions used in practice by Zephyr + ESP-IDF; both projects maintain their own forks of the original `kconfiglib` library:
+
+- https://github.com/zephyrproject-rtos/Kconfiglib (actively maintained fork
+  used by Zephyr, original library
+  [here](https://github.com/ulfalizer/Kconfiglib))
+
+Espressif has an excellent documentation page here about their fork of
+Kconfiglib:
+
+- https://docs.espressif.com/projects/esp-idf-kconfig/en/latest/kconfiglib/index.html
+
+Which includes a parser
+[here](https://github.com/espressif/esp-idf-kconfig/blob/master/esp_kconfiglib/kconfig_parser.py),
+however, that is intended to be used on a complete Kconfig setup, not on a
+per-file basis (i.e. it wants to be able to load in sourced files etc). For the
+purposes of basic formatting, we only need to parse individual files, so we've
+implemented our own parser.
+
+Espressif also provides a tool called
 [`kconfcheck`](https://github.com/espressif/esp-idf-kconfig/blob/master/kconfcheck/core.py)
 to check Kconfig formatting, but it is not very configurable and does not
 support auto-formatting. `kconfigstyle` aims to provide a more flexible and
 user-friendly alternative.
+
+Finally, see here for references on Zephyr and ESP-IDF Kconfig styles:
+
+- https://docs.zephyrproject.org/latest/contribute/style/kconfig.html
+- https://docs.espressif.com/projects/esp-idf-kconfig/en/latest/kconfcheck/index.html#kconfig-format-rules
 
 ## Installation
 
