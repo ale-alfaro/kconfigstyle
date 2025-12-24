@@ -27,12 +27,12 @@ Which includes a parser
 [here](https://github.com/espressif/esp-idf-kconfig/blob/master/esp_kconfiglib/kconfig_parser.py),
 however, that is intended to be used on a complete Kconfig setup, not on a
 per-file basis (i.e. it wants to be able to load in sourced files etc). For the
-purposes of basic formatting, we only need to parse individual files, so we've
-implemented our own parser.
+purposes of basic formatting, it's only necessary to parse individual files, so I've
+implemented a standalone parser for this use case.
 
 Espressif also provides a tool called
 [`kconfcheck`](https://github.com/espressif/esp-idf-kconfig/blob/master/kconfcheck/core.py)
-to check Kconfig formatting, but it is not very configurable and does not
+to check Kconfig syntax/formatting, but it is not very configurable and does not
 support auto-formatting. `kconfigstyle` aims to provide a more flexible and
 user-friendly alternative.
 
