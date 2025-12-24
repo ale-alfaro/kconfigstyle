@@ -5,8 +5,8 @@
 
 # kconfigstyle
 
-A simple linter for Kconfig files, with support for Zephyr and ESP-IDF coding
-styles.
+A simple linter + formatter for Kconfig files, with support for Zephyr and ESP-IDF
+style conventions.
 
 The "Kconfig language" is defined here:
 
