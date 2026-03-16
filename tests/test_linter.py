@@ -3104,9 +3104,7 @@ class TestCoverageImprovements:
         try:
             formatted, _ = linter.format_file(temp_path)
             assert any("def_bool" in line for line in formatted)
-            assert any(
-                "def_tristate" in line for line in formatted
-            )
+            assert any("def_tristate" in line for line in formatted)
         finally:
             temp_path.unlink()
 
