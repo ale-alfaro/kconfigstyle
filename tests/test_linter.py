@@ -693,6 +693,9 @@ class TestEdgeCases:
         assert linter._get_line_type('\thex "Value"') == "option"
         assert linter._get_line_type("\tdef_bool y") == "option"
         assert linter._get_line_type("\tdef_tristate y") == "option"
+        assert linter._get_line_type("\tdef_int 3") == "option"
+        assert linter._get_line_type("\tdef_hex 0x10") == "option"
+        assert linter._get_line_type('\tdef_string "x"') == "option"
         assert linter._get_line_type('\tprompt "Text"') == "option"
         assert linter._get_line_type("\tdefault y") == "option"
         assert linter._get_line_type("\tselect FOO") == "option"
@@ -3220,6 +3223,41 @@ class TestCoverageImprovements:
             formatted, _ = linter.format_file(temp_path)
             assert any("def_bool" in line for line in formatted)
             assert any("def_tristate" in line for line in formatted)
+        finally:
+            temp_path.unlink()
+
+    def test_def_int_hex_string(self):
+        """Test def_int, def_hex and def_string are parsed as options, not unknown lines."""
+        config = LinterConfig.zephyr_preset()
+        linter = KconfigLinter(config)
+
+        lines = [
+            "config TEST1\n",
+            "\tdef_int 3 if FOO # three\n",
+            "config TEST2\n",
+            "\tdef_hex 0x10\n",
+            "config TEST3\n",
+            '\tdef_string "x"\n',
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted, _ = linter.format_file(temp_path)
+            assert formatted == [
+                "config TEST1\n",
+                "\tdef_int 3 if FOO  # three\n",
+                "\n",
+                "config TEST2\n",
+                "\tdef_hex 0x10\n",
+                "\n",
+                "config TEST3\n",
+                '\tdef_string "x"\n',
+            ]
         finally:
             temp_path.unlink()
 

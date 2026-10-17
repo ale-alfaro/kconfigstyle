@@ -602,6 +602,9 @@ class KconfigParser:
             "hex",
             "def_bool",
             "def_tristate",
+            "def_int",
+            "def_hex",
+            "def_string",
             "prompt",
             "default",
             "depends on",
@@ -631,6 +634,9 @@ class KconfigParser:
             "hex": r"^hex(\s+(.*))?$",
             "def_bool": r"^def_bool\s+(.+)$",
             "def_tristate": r"^def_tristate\s+(.+)$",
+            "def_int": r"^def_int\s+(.+)$",
+            "def_hex": r"^def_hex\s+(.+)$",
+            "def_string": r"^def_string\s+(.+)$",
             "prompt": r"^prompt\s+(.+)$",
             "visible_if": r"^visible\s+if\s+(.+)$",
             "default": r"^default\s+(.+)$",
@@ -1173,7 +1179,7 @@ class KconfigFormatter:
                 line = f"{indent}{node.option_type} {node.value}"
             else:
                 line = f"{indent}{node.option_type}"
-        elif node.option_type in ["def_bool", "def_tristate"]:
+        elif node.option_type.startswith("def_"):
             line = f"{indent}{node.option_type} {node.value}"
         else:
             line = f"{indent}{node.option_type.replace('_', ' ')} {node.value}"
@@ -1699,7 +1705,7 @@ class KconfigLinter:
         elif stripped.startswith("help"):
             return "help"
         elif re.match(
-            r"^\s*(bool|tristate|string|int|hex|def_bool|def_tristate|prompt|default|depends on|visible if|select|imply|range|option)\s",
+            r"^\s*(bool|tristate|string|int|hex|def_bool|def_tristate|def_int|def_hex|def_string|prompt|default|depends on|visible if|select|imply|range|option)\s",
             stripped,
         ):
             return "option"
