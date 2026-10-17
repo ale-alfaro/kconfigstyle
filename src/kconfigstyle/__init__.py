@@ -129,7 +129,7 @@ class ConfigEntry(ASTNode):
     """A config or menuconfig entry."""
 
     line_number: int = 0
-    config_type: Literal["config", "menuconfig"] = "config"
+    config_type: Literal["config", "configdefault", "menuconfig"] = "config"
     name: str = ""
     options: list[ASTNode] = field(
         default_factory=list
@@ -314,7 +314,7 @@ class KconfigParser:
             return node
 
         # Config/menuconfig
-        if stripped.startswith("config "):
+        if stripped.startswith(("config ", "configdefault ")):
             return self._parse_config_entry()
 
         if stripped.startswith("menuconfig "):
@@ -346,7 +346,7 @@ class KconfigParser:
         return node
 
     def _parse_config_entry(self) -> ConfigEntry:
-        """Parse a config or menuconfig entry."""
+        """Parse a config, configdefault or menuconfig entry."""
         line = self._current_line()
         stripped = line.lstrip()
 
@@ -356,6 +356,9 @@ class KconfigParser:
         if stripped_no_comment.startswith("menuconfig "):
             config_type = "menuconfig"
             name = stripped_no_comment[11:].strip()
+        elif stripped_no_comment.startswith("configdefault "):
+            config_type = "configdefault"
+            name = stripped_no_comment[14:].strip()
         else:
             config_type = "config"
             name = stripped_no_comment[7:].strip()
@@ -572,6 +575,7 @@ class KconfigParser:
         """Check if line starts with a structural keyword."""
         keywords = [
             "config ",
+            "configdefault ",
             "menuconfig ",
             "choice",
             "endchoice",
@@ -1133,7 +1137,7 @@ class KconfigFormatter:
             self.lines.append(f"{indent}#")
 
     def _format_config_entry(self, node: ConfigEntry, indent_level: int):
-        """Format a config or menuconfig entry."""
+        """Format a config, configdefault or menuconfig entry."""
         indent = self._get_indent(indent_level)
         line = f"{indent}{node.config_type} {node.name}"
         line = self._append_inline_comment(line, node.inline_comment)
@@ -1518,23 +1522,21 @@ class KconfigLinter:
             elif in_help_block:
                 # Check if we're still in help text
                 # Help text can have tab + spaces (that's the expected format)
-                if stripped.startswith(
-                    (
-                        "#",
-                        "config",
-                        "menuconfig",
-                        "choice",
-                        "menu",
-                        "if ",
-                        "endif",
-                        "endmenu",
-                        "endchoice",
-                        "source",
-                        "rsource",
-                        "comment ",
-                        "mainmenu",
-                    )
-                ):
+                if stripped.startswith((
+                    "#",
+                    "config",
+                    "menuconfig",
+                    "choice",
+                    "menu",
+                    "if ",
+                    "endif",
+                    "endmenu",
+                    "endchoice",
+                    "source",
+                    "rsource",
+                    "comment ",
+                    "mainmenu",
+                )):
                     # We've hit a keyword, exit help block
                     in_help_block = False
                 else:
@@ -1679,6 +1681,8 @@ class KconfigLinter:
             return "comment_line"
         elif stripped.startswith("config "):
             return "config"
+        elif stripped.startswith("configdefault "):
+            return "configdefault"
         elif stripped.startswith("menuconfig "):
             return "menuconfig"
         elif stripped.startswith("menu "):
@@ -1708,8 +1712,8 @@ class KconfigLinter:
             return "other"
 
     def _check_config_name(self, line: str, line_num: int):
-        """Check config/menuconfig name formatting (for test compatibility)."""
-        match = re.match(r"^\s*(config|menuconfig)\s+(\S+)", line)
+        """Check config/configdefault/menuconfig name formatting (for test compatibility)."""
+        match = re.match(r"^\s*(config|configdefault|menuconfig)\s+(\S+)", line)
         if not match:
             return
 

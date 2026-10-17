@@ -163,6 +163,33 @@ class TestZephyrStyle:
         finally:
             temp_path.unlink()
 
+    def test_configdefault_no_issues(self):
+        """Test that Zephyr's configdefault entries lint clean."""
+        config = LinterConfig.zephyr_preset()
+        linter = KconfigLinter(config)
+
+        lines = [
+            "# Network configuration\n",
+            "\n",
+            "configdefault NETWORKING\n",
+            "\tdefault y\n",
+            "\n",
+            "configdefault NET_IPV4\n",
+            "\tdefault n if NET_IPV6\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(lines)
+            temp_path = Path(f.name)
+
+        try:
+            issues = linter.lint_file(temp_path)
+            assert len(issues) == 0, f"Expected no issues, got: {issues}"
+        finally:
+            temp_path.unlink()
+
 
 class TestESPIDFStyle:
     """Test ESP-IDF style linting."""
