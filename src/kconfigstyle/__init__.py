@@ -116,10 +116,10 @@ class HelpText(ASTNode):
 
 @dataclass
 class ConfigOption(ASTNode):
-    """A config option like 'bool', 'default', 'depends on', etc."""
+    """A config option like 'bool', 'default', 'depends on', 'visible if', etc."""
 
     line_number: int = 0
-    option_type: str = ""  # 'bool', 'default', 'depends_on', 'select', etc.
+    option_type: str = ""  # 'bool', 'default', 'depends_on', 'visible_if', 'select'
     value: str = ""  # The rest of the line
     condition: str = ""  # Optional 'if' condition
 
@@ -156,7 +156,7 @@ class MenuEntry(ASTNode):
 
     line_number: int = 0
     title: str = ""
-    depends: list[str] = field(default_factory=list)
+    options: list[ConfigOption] = field(default_factory=list)
     statements: list[ASTNode] = field(default_factory=list)
 
 
@@ -632,6 +632,7 @@ class KconfigParser:
             "def_bool": r"^def_bool\s+(.+)$",
             "def_tristate": r"^def_tristate\s+(.+)$",
             "prompt": r"^prompt\s+(.+)$",
+            "visible_if": r"^visible\s+if\s+(.+)$",
             "default": r"^default\s+(.+)$",
             "depends_on": r"^depends\s+on\s+(.+)$",
             "select": r"^select\s+(.+)$",
@@ -864,16 +865,13 @@ class KconfigParser:
                 self._advance()
                 break
 
-            # Depends on for menu
-            if stripped.startswith("depends on "):
-                node.depends.append(stripped[11:].strip())
-                self._advance()
-                continue
-
-            # Otherwise parse as statement
-            stmt = self._parse_statement()
-            if stmt:
-                node.statements.append(stmt)
+            if stripped.startswith(("depends on ", "visible if ")):
+                node.options.append(self._parse_config_option())
+            else:
+                # Otherwise parse as statement
+                stmt = self._parse_statement()
+                if stmt:
+                    node.statements.append(stmt)
 
         return node
 
@@ -1170,9 +1168,7 @@ class KconfigFormatter:
         indent = self._get_indent(indent_level, 1)
 
         # Build the line
-        if node.option_type == "depends_on":
-            line = f"{indent}depends on {node.value}"
-        elif node.option_type in ["bool", "tristate", "string", "int", "hex"]:
+        if node.option_type in ["bool", "tristate", "string", "int", "hex"]:
             if node.value:
                 line = f"{indent}{node.option_type} {node.value}"
             else:
@@ -1353,9 +1349,8 @@ class KconfigFormatter:
         self.lines.append(f'{indent}menu "{node.title}"')
 
         # Depends
-        option_indent = self._get_indent(indent_level, 1)
-        for dep in node.depends:
-            self.lines.append(f"{option_indent}depends on {dep}")
+        for option in node.options:
+            self._format_config_option(option, indent_level)
 
         # Statements
         next_level = indent_level + (1 if self.config.indent_sub_items else 0)
@@ -1704,7 +1699,7 @@ class KconfigLinter:
         elif stripped.startswith("help"):
             return "help"
         elif re.match(
-            r"^\s*(bool|tristate|string|int|hex|def_bool|def_tristate|prompt|default|depends on|select|imply|range|option)\s",
+            r"^\s*(bool|tristate|string|int|hex|def_bool|def_tristate|prompt|default|depends on|visible if|select|imply|range|option)\s",
             stripped,
         ):
             return "option"
@@ -1806,8 +1801,8 @@ def _dump_ast(nodes: list[ASTNode], indent: int = 0):
                 _dump_ast(node.entries, indent + 2)
         elif isinstance(node, MenuEntry):
             print(f"{prefix}MenuEntry: {node.title!r}")
-            if node.depends:
-                print(f"{prefix}  depends: {node.depends}")
+            for n in node.options:
+                print(f"{prefix}  {n.option_type.replace('_', ' ')}: {n.value}")
             if node.statements:
                 print(f"{prefix}  statements:")
                 _dump_ast(node.statements, indent + 2)

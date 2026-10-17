@@ -479,6 +479,13 @@ class TestLineTypeDetection:
 
         assert linter._get_line_type("\tdepends on FOO") == "option"
 
+    def test_visible_if(self):
+        """Test detection of visible if."""
+        config = LinterConfig.zephyr_preset()
+        linter = KconfigLinter(config)
+
+        assert linter._get_line_type("\tvisible if FOO") == "option"
+
     def test_detect_comment(self):
         """Test detection of comments."""
         config = LinterConfig.zephyr_preset()
@@ -3081,6 +3088,36 @@ class TestCoverageImprovements:
             formatted, _ = linter.format_file(temp_path)
             assert any("menu" in line for line in formatted)
             assert any("depends" in line for line in formatted)
+        finally:
+            temp_path.unlink()
+
+    def test_menu_with_visible_if(self):
+        """Test menu with visible if and depends on, keeping inline comments."""
+        config = LinterConfig.zephyr_preset()
+        linter = KconfigLinter(config)
+
+        lines = [
+            'menu "Advanced"\n',
+            "\tdepends on DEBUG # needs debug\n",
+            "\tvisible if EXPERT # hide\n",
+            "\tconfig ADV_OPT\n",
+            '\t\tbool "Advanced option"\n',
+            "endmenu\n",
+        ]
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".Kconfig", delete=False
+        ) as f:
+            f.writelines(lines)
+            temp_path = Path(f.name)
+
+        try:
+            formatted, _ = linter.format_file(temp_path)
+            assert formatted[:3] == [
+                'menu "Advanced"\n',
+                "\tdepends on DEBUG  # needs debug\n",
+                "\tvisible if EXPERT  # hide\n",
+            ]
         finally:
             temp_path.unlink()
 
